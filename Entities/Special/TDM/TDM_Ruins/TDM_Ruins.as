@@ -1,15 +1,15 @@
+// UPDATED TO NEW MOD API BY vladkvs193
 // TDM Ruins logic
 
 #include "ClassSelectMenu.as"
 #include "StandardRespawnCommand.as"
 #include "StandardControlsCommon.as"
-#include "RespawnCommandCommon.as"
 #include "GenericButtonCommon.as"
 
 void onInit(CBlob@ this)
 {
 	this.CreateRespawnPoint("ruins", Vec2f(0.0f, 16.0f));
-
+	AddIconToken("$change_class$", "/GUI/InteractionIcons.png", Vec2f(32, 32), 12, 2);
 	//MICE
 	AddIconToken("$builder_class_icon$", "Entities/Characters/Builder/Rat.png", Vec2f(25, 25), 12);
 	AddIconToken("$fatrat_class_icon$", "Entities/Characters/FatRat/FatRat.png", Vec2f(25, 25), 16);
@@ -42,15 +42,18 @@ void onInit(CBlob@ this)
 	addPlayerClass(this, "Priest cat, increases mining speed of cats and decreases for rats, passively regens HP of cats", "$priestcat_class_icon$", "priestcat", "Cat");
 	// ^^^ noneeds an extra line because menu is created without last class-token
 	// ADD NEW CATS CLASSES ONLY HERE (OR U GONNA MAKE CLASS SEPARATION FUNCTION WORK WRONG)
-
-
 	this.getShape().SetStatic(true);
 	this.getShape().getConsts().mapCollisions = false;
-	this.addCommandID("class menu");
+	this.addCommandID("change class");
 
 	this.Tag("change class drop inventory");
 
 	this.getSprite().SetZ(-50.0f);   // push to background
+
+	// minimap
+	this.SetMinimapOutsideBehaviour(CBlob::minimap_snap);
+	this.SetMinimapVars("GUI/Minimap/MinimapIcons.png", 29, Vec2f(8, 8));
+	this.SetMinimapRenderAlways(true);
 }
 
 void onTick(CBlob@ this)
@@ -75,24 +78,14 @@ void onTick(CBlob@ this)
 
 void onCommand(CBlob@ this, u8 cmd, CBitStream @params)
 {
-	if (cmd == this.getCommandID("class menu"))
-	{
-		u16 callerID = params.read_u16();
-		CBlob@ caller = getBlobByNetworkID(callerID);
-
-		if (caller !is null && caller.isMyPlayer())
-		{
-			BuildRespawnMenuFor(this, caller);
-		}
-	}
-	else
-	{
-		onRespawnCommand(this, cmd, params);
-	}
+	onRespawnCommand(this, cmd, params);
 }
 
 void GetButtonsFor(CBlob@ this, CBlob@ caller)
 {
+	AddIconToken("$knight_class_icon$", "GUI/MenuItems.png", Vec2f(32, 32), 12, caller.getTeamNum());
+	AddIconToken("$archer_class_icon$", "GUI/MenuItems.png", Vec2f(32, 32), 16, caller.getTeamNum());
+	
 	if (!canSeeButtons(this, caller)) return;
 
 	if (canChangeClass(this, caller))
@@ -104,8 +97,7 @@ void GetButtonsFor(CBlob@ this, CBlob@ caller)
 		else
 		{
 			CBitStream params;
-			params.write_u16(caller.getNetworkID());
-			caller.CreateGenericButton("$change_class$", Vec2f(0, 6), this, this.getCommandID("class menu"), getTranslatedString("Change class"), params);
+			caller.CreateGenericButton("$change_class$", Vec2f(0, 0), this, buildSpawnMenu, getTranslatedString("Change class"));
 		}
 	}
 

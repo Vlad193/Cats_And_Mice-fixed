@@ -1,3 +1,4 @@
+// UPDATED TO NEW MOD API BY vladkvs193
 // Runner Movement
 
 #include "RunnerCommon.as"
@@ -6,8 +7,8 @@ void onInit(CMovement@ this)
 {
 	RunnerMoveVars moveVars;
 	//walking vars
-	moveVars.walkSpeed = 2.7f;
-	moveVars.walkSpeedInAir = 2.6f;
+	moveVars.walkSpeed = 2.6f;
+	moveVars.walkSpeedInAir = 2.5f;
 	moveVars.walkFactor = 1.0f;
 	moveVars.walkLadderSpeed.Set(0.15f, 0.6f);
 	//jumping vars
@@ -19,8 +20,8 @@ void onInit(CMovement@ this)
 	moveVars.jumpCount = 0;
 	moveVars.canVault = true;
 	//swimming
-	moveVars.swimspeed = 1.2;
-	moveVars.swimforce = 30;
+	moveVars.swimspeed = 1.5;
+	moveVars.swimforce = 40;
 	moveVars.swimEdgeScale = 2.0f;
 	//the overall scale of movement
 	moveVars.overallScale = 1.0f;
@@ -31,9 +32,6 @@ void onInit(CMovement@ this)
 	//
 	moveVars.walljumped = false;
 	moveVars.walljumped_side = Walljump::NONE;
-	moveVars.wallrun_length = 2;
-	moveVars.wallrun_start = -1.0f;
-	moveVars.wallrun_current = -1.0f;
 	moveVars.wallclimbing = false;
 	moveVars.wallsliding = false;
 	//

@@ -1,6 +1,5 @@
+// UPDATED TO NEW MOD API BY vladkvs193
 //stuff for building respawn menus
-
-#include "RespawnCommandCommon.as"
 
 //class for getting everything needed for swapping to a class at a building
 
@@ -34,6 +33,25 @@ void addPlayerClass(CBlob@ this, string name, string iconName, string configFile
 }
 
 //helper for building menus of classes
+
+void addClassesToMenu(CBlob@ this, CGridMenu@ menu, u16 callerID)
+{
+	PlayerClass[]@ classes;
+
+	if (this.get("playerclasses", @classes))
+	{
+		for (uint i = 0 ; i < classes.length; i++)
+		{
+			PlayerClass @pclass = classes[i];
+
+			CBitStream params;
+			params.write_u8(i);
+
+			CGridButton@ button = menu.AddButton(pclass.iconName, getTranslatedString(pclass.name), this.getCommandID("change class"), Vec2f(CLASS_BUTTON_SIZE, CLASS_BUTTON_SIZE), params);
+			//button.SetHoverText( pclass.description + "\n" );
+		}
+	}
+}
 CRules @rules = getRules();
 void addClassesToMenuMice(CBlob@ this, CGridMenu@ menu, u16 callerID)
 {
@@ -48,14 +66,18 @@ void addClassesToMenuMice(CBlob@ this, CGridMenu@ menu, u16 callerID)
 				PlayerClass @pclass = classes[i];
 
 				CBitStream params;
-				write_classchange(params, callerID, pclass.configFilename);
+				//write_classchange(params, callerID, pclass.configFilename);
+				params.write_u8(i);
 
-				CGridButton@ button = menu.AddButton(pclass.iconName, getTranslatedString(pclass.name), SpawnCmd::changeClass, Vec2f(CLASS_BUTTON_SIZE, CLASS_BUTTON_SIZE), params);
+				//CGridButton@ button = menu.AddButton(pclass.iconName, getTranslatedString(pclass.name), SpawnCmd::changeClass, Vec2f(CLASS_BUTTON_SIZE, CLASS_BUTTON_SIZE), params);
+				CGridButton@ button = menu.AddButton(pclass.iconName, getTranslatedString(pclass.name), this.getCommandID("change class"), Vec2f(CLASS_BUTTON_SIZE, CLASS_BUTTON_SIZE), params);
 				//button.SetHoverText( pclass.description + "\n" );
 			}
 		}
 	}
 }
+
+
 
 void addClassesToMenuCats(CBlob@ this, CGridMenu@ menu, u16 callerID)
 {
@@ -70,9 +92,11 @@ void addClassesToMenuCats(CBlob@ this, CGridMenu@ menu, u16 callerID)
 				PlayerClass @pclass = classes[i];
 
 				CBitStream params;
-				write_classchange(params, callerID, pclass.configFilename);
+				//write_classchange(params, callerID, pclass.configFilename);
+				params.write_u8(i);
 
-				CGridButton@ button = menu.AddButton(pclass.iconName, getTranslatedString(pclass.name), SpawnCmd::changeClass, Vec2f(CLASS_BUTTON_SIZE, CLASS_BUTTON_SIZE), params);
+				//CGridButton@ button = menu.AddButton(pclass.iconName, getTranslatedString(pclass.name), SpawnCmd::changeClass, Vec2f(CLASS_BUTTON_SIZE, CLASS_BUTTON_SIZE), params);
+				CGridButton@ button = menu.AddButton(pclass.iconName, getTranslatedString(pclass.name), this.getCommandID("change class"), Vec2f(CLASS_BUTTON_SIZE, CLASS_BUTTON_SIZE), params);
 				//button.SetHoverText( pclass.description + "\n" );
 			}
 		}

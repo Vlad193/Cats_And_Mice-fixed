@@ -1,10 +1,10 @@
+// UPDATED TO NEW MOD API BY vladkvs193
 #include "PlacementCommon.as"
 #include "BuildBlock.as"
 #include "Requirements.as"
+#include "GameplayEventsCommon.as";
 
-#include "GameplayEvents.as"
-
-//server-only
+// Called server side
 void PlaceBlock(CBlob@ this, u8 index, Vec2f cursorPos)
 {
 	BuildBlock @bc = getBlockByIndex(this, index);
@@ -28,29 +28,29 @@ void PlaceBlock(CBlob@ this, u8 index, Vec2f cursorPos)
 	bool validTile = bc.tile > 0;
 	bool hasReqs = hasRequirements(inv, bc.reqs, missing);
 	bool passesChecks = serverTileCheck(this, index, cursorPos);
+	bool stillOnDelay = isBuildDelayed(this);
 
-	if (!validTile)
-		warn(name + " tried to place an invalid tile");
-
-	if (!hasReqs)
-		warn(name + " tried to place a tile without having correct resoruces");
-
-	if (!passesChecks)
-		warn(name + " tried to place tile in an invalid way");
-
-	if (validTile && hasReqs && passesChecks)
+	if (validTile && hasReqs && passesChecks && !stillOnDelay)
 	{
-		DestroyScenary(cursorPos, cursorPos);
+		CMap@ map = getMap();
+		DestroyScenary(cursorPos, Vec2f(cursorPos.x+map.tilesize, cursorPos.y+map.tilesize));
 		server_TakeRequirements(inv, bc.reqs);
-		getMap().server_SetTile(cursorPos, bc.tile);
+		map.server_SetTile(cursorPos, bc.tile);
 
-		u32 delay = this.get_u32("build delay");
-		SetBuildDelay(this, delay / 2); // Set a smaller delay to compensate for lag/late packets etc
+		// one day we will reach an ideal world without latency, dumb edge cases and bad netcode
+		// that day is not today
+		u32 delay = getCurrentBuildDelay(this) - 1;
+		SetBuildDelay(this, delay);
 
-		SendGameplayEvent(createBuiltBlockEvent(this.getPlayer(), bc.tile));
+		// GameplayEvent
+		if (p !is null)
+		{
+			GE_BuildBlock(p.getNetworkID(), bc.tile); // gameplay event for coins
+		}
 	}
 }
 
+// Returns true if pos is valid
 bool serverTileCheck(CBlob@ blob, u8 tileIndex, Vec2f cursorPos)
 {
 	// Pos check of about 8 tiles, accounts for people with lag
@@ -66,8 +66,8 @@ bool serverTileCheck(CBlob@ blob, u8 tileIndex, Vec2f cursorPos)
 	// Are we trying to place in a bad pos?
 	CMap@ map = getMap();
 	Tile backtile = map.getTile(cursorPos);
-	// (map.getTile(tileIndex).type + " " + tileIndex + " ");
-	if (map.isTileBedrock(backtile.type) || map.isTileSolid(backtile.type) && map.isTileGroundStuff(backtile.type) || map.getTile(tileIndex).type == 456 && tileIndex == 456) 
+
+	if (map.isTileBedrock(backtile.type) || map.isTileSolid(backtile.type) && map.isTileGroundStuff(backtile.type)) 
 		return false;
 
 	// Make sure we actually have support at our cursor pos
@@ -85,6 +85,19 @@ bool serverTileCheck(CBlob@ blob, u8 tileIndex, Vec2f cursorPos)
 
 		if (map.getSectorAtPosition(pos, "no build") !is null)
 			return false;
+	}
+
+	BuildBlock @blockToPlace = getBlockByIndex(blob, tileIndex);
+	// Are we trying to place a tile on the same tile (usually due to lag)?
+	if (backtile.type == blockToPlace.tile)
+	{
+		return false;
+	}
+
+	// Are we trying to place a solid tile on a door/ladder/platform/bridge (usually due to lag)?
+	if (fakeHasTileSolidBlobs(cursorPos) && map.isTileSolid(blockToPlace.tile))
+	{
+		return false;
 	}
 
 	return true;
@@ -171,11 +184,11 @@ void onTick(CBlob@ this)
 			{
 				CBitStream params;
 				params.write_u8(blockIndex);
-				params.write_Vec2f(bc.tileAimPos);
+				//params.write_Vec2f(bc.tileAimPos);
+				params.write_Vec2f(this.getAimPos()); // we're gonna send the aimpos and double-check range on server for safety
 				this.SendCommand(this.getCommandID("placeBlock"), params);
-				u32 delay = this.get_u32("build delay");
-				//SetBuildDelay(this, block.tile < 255 ? delay : delay / 3);
-				SetBuildDelay(this, delay);
+				u32 delay = getCurrentBuildDelay(this);
+				SetBuildDelay(this, block.tile < 255 ? delay : delay / 3);
 				bc.blockActive = false;
 			}
 			else if (this.isKeyJustPressed(key_action1) && !bc.sameTileOnBack)
@@ -284,11 +297,39 @@ void onRender(CSprite@ this)
 
 void onCommand(CBlob@ this, u8 cmd, CBitStream @params)
 {
-	if (getNet().isServer() && cmd == this.getCommandID("placeBlock"))
+	if (cmd == this.getCommandID("placeBlock") && isServer())
 	{
-		u8 index = params.read_u8();
-		Vec2f pos = params.read_Vec2f();
-		PlaceBlock(this, index, pos);
+		u8 index;
+		if (!params.saferead_u8(index)) return;
+
+		Vec2f aimpos;
+		if (!params.saferead_Vec2f(aimpos)) return;
+
+		// convert aimpos to tileaimpos (on server this time);
+		Vec2f pos = this.getPosition();
+		Vec2f mouseNorm = aimpos - pos;
+		f32 mouseLen = mouseNorm.Length();
+		const f32 maxLen = MAX_BUILD_LENGTH;
+		mouseNorm /= mouseLen;
+
+		Vec2f tileaimpos;
+
+		if (mouseLen > maxLen * getMap().tilesize)
+		{
+			f32 d = maxLen * getMap().tilesize;
+			Vec2f p = pos + Vec2f(d * mouseNorm.x, d * mouseNorm.y);
+			tileaimpos = getMap().getTileWorldPosition(getMap().getTileSpacePosition(p));
+		}
+		else
+		{
+			tileaimpos = getMap().getTileWorldPosition(getMap().getTileSpacePosition(aimpos));
+		}
+
+		// out of range
+		if (mouseLen >= getMaxBuildDistance(this))
+		{
+			return;
+		} 
+		PlaceBlock(this, index, tileaimpos);
 	}
 }
-
