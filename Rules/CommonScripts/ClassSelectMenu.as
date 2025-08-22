@@ -72,6 +72,7 @@ void addClassesToMenuMice(CBlob@ this, CGridMenu@ menu, u16 callerID)
 				//CGridButton@ button = menu.AddButton(pclass.iconName, getTranslatedString(pclass.name), SpawnCmd::changeClass, Vec2f(CLASS_BUTTON_SIZE, CLASS_BUTTON_SIZE), params);
 				CGridButton@ button = menu.AddButton(pclass.iconName, getTranslatedString(pclass.name), this.getCommandID("change class"), Vec2f(CLASS_BUTTON_SIZE, CLASS_BUTTON_SIZE), params);
 				//button.SetHoverText( pclass.description + "\n" );
+				break;
 			}
 		}
 	}
@@ -98,6 +99,7 @@ void addClassesToMenuCats(CBlob@ this, CGridMenu@ menu, u16 callerID)
 				//CGridButton@ button = menu.AddButton(pclass.iconName, getTranslatedString(pclass.name), SpawnCmd::changeClass, Vec2f(CLASS_BUTTON_SIZE, CLASS_BUTTON_SIZE), params);
 				CGridButton@ button = menu.AddButton(pclass.iconName, getTranslatedString(pclass.name), this.getCommandID("change class"), Vec2f(CLASS_BUTTON_SIZE, CLASS_BUTTON_SIZE), params);
 				//button.SetHoverText( pclass.description + "\n" );
+				break;
 			}
 		}
 	}
