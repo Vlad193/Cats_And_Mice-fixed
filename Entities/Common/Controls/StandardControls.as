@@ -403,81 +403,14 @@ void onRender(CSprite@ this)
 void AdjustCamera(CBlob@ this, bool is_in_render)
 {
 	CCamera@ camera = getCamera();
-	f32 zoom = camera.targetDistance;
 
-	f32 zoomSpeed = 0.1f;
-	if (is_in_render)
-	{
-		zoomSpeed *= getRenderApproximateCorrectionFactor();
-	}
-
-	f32 minZoom = 0.5f; // TODO: make vars
-	f32 maxZoom = 2.0f;
-
-	f32 zoom_target = 1.0f;
-
-	if (zoomModifier) 
-	{
-		switch (zoomModifierLevel) 
-		{
-			case 0:	zoom_target = 0.5f; zoomLevel = 0; break;
-			case 1: zoom_target = 0.5625f; zoomLevel = 0; break;
-			case 2: zoom_target = 0.625f; zoomLevel = 0; break;
-			case 3: zoom_target = 0.75f; zoomLevel = 0; break;
-			case 4: zoom_target = 1.0f; zoomLevel = 1; break;
-			case 5: zoom_target = 1.5f; zoomLevel = 1; break;
-			case 6: zoom_target = 2.0f; zoomLevel = 2; break;
-		}
-	} 
-	else 
-	{
-		switch (zoomLevel) 
-		{
-			case 0: zoom_target = 0.5f; zoomModifierLevel = 0; break;
-			case 1: zoom_target = 1.0f; zoomModifierLevel = 4; break;
-			case 2:	zoom_target = 2.0f; zoomModifierLevel = 6; break;
-		}
-	}
-
-	if (zoom > zoom_target)
-	{
-		zoom = Maths::Max(zoom_target, zoom - zoomSpeed);
-	}
-	else if (zoom < zoom_target)
-	{
-		zoom = Maths::Min(zoom_target, zoom + zoomSpeed);
-	}
-
-	camera.targetDistance = zoom;
+	camera.targetDistance = 1.8f;
 }
 
 void ManageCamera(CBlob@ this)
 {
 	CCamera@ camera = getCamera();
 	CControls@ controls = this.getControls();
-
-	// mouse look & zoom
-	if ((getGameTime() - this.get_s32("tap_time") > 5) && controls !is null)
-	{
-		if (controls.isKeyJustPressed(controls.getActionKeyKey(AK_ZOOMOUT)))
-		{
-			zoomModifier = controls.isKeyPressed(KEY_LCONTROL);
-
-			zoomModifierLevel = Maths::Max(0, zoomModifierLevel - 1);
-			zoomLevel = Maths::Max(0, zoomLevel - 1);
-
-			Tap(this);
-		}
-		else  if (controls.isKeyJustPressed(controls.getActionKeyKey(AK_ZOOMIN)))
-		{
-			zoomModifier = controls.isKeyPressed(KEY_LCONTROL);
-
-			zoomModifierLevel = Maths::Min(6, zoomModifierLevel + 1);
-			zoomLevel = Maths::Min(2, zoomLevel + 1);
-
-			Tap(this);
-		}
-	}
 
 	if (!this.hasTag("60fps_camera"))
 	{
@@ -508,5 +441,5 @@ void ManageCamera(CBlob@ this)
 	}
 
 	// camera
-	camera.mouseFactor = 0.5f; // doesn't affect soldat cam
+	camera.mouseFactor = 0.35f; // doesn't affect soldat cam
 }
